@@ -43,7 +43,7 @@ impl CgroupBuilder {
     // It will discover cgroup mount points and hierarchies configured
     // on the system and cache the info required to create cgroups later
     // within this hierarchies
-    pub fn new(ver: u8, proc_mounts: &str) -> Result<Self, JailerError> {
+    pub fn new_with_proc_mounts(ver: u8, proc_mounts: &str) -> Result<Self, JailerError> {
         if ver != 1 && ver != 2 {
             return Err(JailerError::CgroupInvalidVersion(ver.to_string()));
         }
@@ -55,8 +55,8 @@ impl CgroupBuilder {
         };
 
         // search PROC_MOUNTS for cgroup mount points
-        let f = File::open(PROC_MOUNTS)
-            .map_err(|err| JailerError::FileOpen(PathBuf::from(PROC_MOUNTS), err))?;
+        let f = File::open(proc_mounts)
+            .map_err(|err| JailerError::FileOpen(PathBuf::from(proc_mounts), err))?;
 
         // Regex courtesy of Filippo.
         // This will match on each line from /proc/mounts for both v1 and v2 mount points.
@@ -76,7 +76,7 @@ impl CgroupBuilder {
         ).map_err(JailerError::RegEx)?;
 
         for l in BufReader::new(f).lines() {
-            let l = l.map_err(|err| JailerError::ReadLine(PathBuf::from(PROC_MOUNTS), err))?;
+            let l = l.map_err(|err| JailerError::ReadLine(PathBuf::from(proc_mounts), err))?;
             if let Some(capture) = re.captures(&l) {
                 if ver == 2 && capture["ver"].len() == 1 {
                     // Found the cgroupv2 unified mountpoint; with cgroupsv2 there is only one
@@ -551,7 +551,7 @@ pub mod test_util {
     // Cleanup created files when object goes out of scope
     impl Drop for MockCgroupFs {
         fn drop(&mut self) {
-            let _ = fs::remove_file(self.file.);
+            let _ = fs::remove_file(PROC_MOUNTS);
             let _ = fs::remove_dir_all("/tmp/firecracker/test");
         }
     }
@@ -600,9 +600,9 @@ mod tests {
     fn test_cgroup_builder_v1_test() {
         let tmp_dir = TempDir::new().unwrap();
         let proc_mounts = tmp_dir.as_path().join("mounts");
-        let mut mock_cgroups = MockCgroupFs::new_test(&proc_dir).unwrap();
+        let mut mock_cgroups = MockCgroupFs::new_test(&proc_mounts).unwrap();
         mock_cgroups.add_v1_mounts().unwrap();
-        let builder = CgroupBuilder::new(1);
+        let builder = CgroupBuilder::new_with_proc_mounts(1, &proc_mounts);
         builder.unwrap();
     }
 
