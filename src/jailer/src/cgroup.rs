@@ -491,6 +491,21 @@ pub mod test_util {
             Ok(MockCgroupFs { mounts_file: file })
         }
 
+        pub fn new_test(proc_dir: std::path::Path) -> std::result::Result<MockCgroupFs, std::io::Error> {
+            let proc_mounts = proc_dir.join("mounts")
+
+            // create a mock /proc/mounts file in a temporary directory
+            fs::create_dir_all(Self::proc_dir)?;
+            let file = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(true)
+                .open(proc_mounts)?;
+
+            Ok(MockCgroupFs { mounts_file: file })
+        }
+
         // Populate the mocked proc/mounts file with cgroupv2 entries
         // Also create a directory structure that simulates cgroupsv2 layout
         pub fn add_v2_mounts(&mut self) -> std::result::Result<(), std::io::Error> {
@@ -575,6 +590,16 @@ mod tests {
     #[test]
     fn test_cgroup_builder_v1() {
         let mut mock_cgroups = MockCgroupFs::new().unwrap();
+        mock_cgroups.add_v1_mounts().unwrap();
+        let builder = CgroupBuilder::new(1);
+        builder.unwrap();
+    }
+
+    #[test]
+    fn test_cgroup_builder_v1_test() {
+        let tmp_dir = TempDir::new().unwrap();
+        let proc_dir = tmp_dir.as_path();
+        let mut mock_cgroups = MockCgroupFs::new_test(proc_dir).unwrap();
         mock_cgroups.add_v1_mounts().unwrap();
         let builder = CgroupBuilder::new(1);
         builder.unwrap();
