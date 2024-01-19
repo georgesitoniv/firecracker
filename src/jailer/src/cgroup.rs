@@ -36,7 +36,7 @@ pub struct CgroupBuilder {
 
 impl CgroupBuilder {
     pub fn new(ver: u8) -> Result<Self, JailerError> {
-        CgroupBuilder::new(ver, PROC_MOUNTS);
+        CgroupBuilder::new_with_proc_mounts(ver, PROC_MOUNTS);
     }
 
     // Creates the builder object
@@ -457,8 +457,7 @@ pub mod test_util {
 
     #[derive(Debug)]
     pub struct MockCgroupFs {
-        mounts_file: File,
-        proc_mounts: &str
+        mounts_file: File
     }
 
     // Helper object that simulates the layout of the cgroup file system
