@@ -599,7 +599,7 @@ mod tests {
     #[test]
     fn test_cgroup_builder_v1_test() {
         let tmp_dir = TempDir::new().unwrap();
-        let proc_mounts = tmp_dir.as_path().join("mounts");
+        let proc_mounts = tmp_dir.as_path().join("mounts").to_str().unwrap();
         let mut mock_cgroups = MockCgroupFs::new_test(&proc_mounts).unwrap();
         mock_cgroups.add_v1_mounts().unwrap();
         let builder = CgroupBuilder::new_with_proc_mounts(1, &proc_mounts);
