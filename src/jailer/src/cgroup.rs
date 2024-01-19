@@ -35,11 +35,15 @@ pub struct CgroupBuilder {
 }
 
 impl CgroupBuilder {
+    pub fn new(ver: u8) -> Result<Self, JailerError> {
+        CgroupBuilder::new(ver, PROC_MOUNTS);
+    }
+
     // Creates the builder object
     // It will discover cgroup mount points and hierarchies configured
     // on the system and cache the info required to create cgroups later
     // within this hierarchies
-    pub fn new(ver: u8) -> Result<Self, JailerError> {
+    pub fn new(ver: u8, proc_mounts: &str) -> Result<Self, JailerError> {
         if ver != 1 && ver != 2 {
             return Err(JailerError::CgroupInvalidVersion(ver.to_string()));
         }
@@ -454,6 +458,7 @@ pub mod test_util {
     #[derive(Debug)]
     pub struct MockCgroupFs {
         mounts_file: File,
+        proc_mounts: &str
     }
 
     // Helper object that simulates the layout of the cgroup file system
@@ -491,11 +496,7 @@ pub mod test_util {
             Ok(MockCgroupFs { mounts_file: file })
         }
 
-        pub fn new_test(proc_dir: &std::path::Path) -> std::result::Result<MockCgroupFs, std::io::Error> {
-            let proc_mounts = proc_dir.join("mounts");
-
-            // create a mock /proc/mounts file in a temporary directory
-            fs::create_dir_all(proc_dir)?;
+        pub fn new_test(proc_mounts: &str) -> std::result::Result<MockCgroupFs, std::io::Error> {
             let file = OpenOptions::new()
                 .read(true)
                 .write(true)
@@ -503,7 +504,7 @@ pub mod test_util {
                 .truncate(true)
                 .open(proc_mounts)?;
 
-            Ok(MockCgroupFs { mounts_file: file })
+            Ok(MockCgroupFs { mounts_file: file, proc_mounts: &proc_mounts })
         }
 
         // Populate the mocked proc/mounts file with cgroupv2 entries
@@ -550,7 +551,7 @@ pub mod test_util {
     // Cleanup created files when object goes out of scope
     impl Drop for MockCgroupFs {
         fn drop(&mut self) {
-            let _ = fs::remove_file(PROC_MOUNTS);
+            let _ = fs::remove_file(self.file.);
             let _ = fs::remove_dir_all("/tmp/firecracker/test");
         }
     }
@@ -598,7 +599,7 @@ mod tests {
     #[test]
     fn test_cgroup_builder_v1_test() {
         let tmp_dir = TempDir::new().unwrap();
-        let proc_dir = tmp_dir.as_path();
+        let proc_mounts = tmp_dir.as_path().join("mounts");
         let mut mock_cgroups = MockCgroupFs::new_test(&proc_dir).unwrap();
         mock_cgroups.add_v1_mounts().unwrap();
         let builder = CgroupBuilder::new(1);
