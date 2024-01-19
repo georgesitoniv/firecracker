@@ -491,11 +491,11 @@ pub mod test_util {
             Ok(MockCgroupFs { mounts_file: file })
         }
 
-        pub fn new_test(proc_dir: std::path::Path) -> std::result::Result<MockCgroupFs, std::io::Error> {
+        pub fn new_test(proc_dir: &std::path::Path) -> std::result::Result<MockCgroupFs, std::io::Error> {
             let proc_mounts = proc_dir.join("mounts")
 
             // create a mock /proc/mounts file in a temporary directory
-            fs::create_dir_all(Self::proc_dir)?;
+            fs::create_dir_all(proc_dir)?;
             let file = OpenOptions::new()
                 .read(true)
                 .write(true)
@@ -599,7 +599,7 @@ mod tests {
     fn test_cgroup_builder_v1_test() {
         let tmp_dir = TempDir::new().unwrap();
         let proc_dir = tmp_dir.as_path();
-        let mut mock_cgroups = MockCgroupFs::new_test(proc_dir).unwrap();
+        let mut mock_cgroups = MockCgroupFs::new_test(&proc_dir).unwrap();
         mock_cgroups.add_v1_mounts().unwrap();
         let builder = CgroupBuilder::new(1);
         builder.unwrap();
