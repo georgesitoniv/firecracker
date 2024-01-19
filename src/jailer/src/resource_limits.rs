@@ -139,6 +139,16 @@ mod tests {
     }
 
     #[test]
+    #[allow(clippy::unnecessary_cast)]
+    fn test_from_resource_to_i32() {
+        assert_eq!(i32::from(Resource::RlimitFsize), libc::RLIMIT_FSIZE as i32);
+        assert_eq!(
+            i32::from(Resource::RlimitNoFile),
+            libc::RLIMIT_NOFILE as i32
+        );
+    }
+
+    #[test]
     fn test_display_resource() {
         assert_eq!(
             Resource::RlimitFsize.to_string(),
